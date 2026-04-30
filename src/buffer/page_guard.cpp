@@ -17,7 +17,21 @@ BasicPageGuard::BasicPageGuard(BasicPageGuard &&that) noexcept
 auto BasicPageGuard::operator=(BasicPageGuard &&that) -> BasicPageGuard & {
   // TODO(student): Implement move assignment
   // - Drop current page if held, then take ownership of `that`
-  throw NotImplementedException("BasicPageGuard::operator=(BasicPageGuard&&)");
+  if (this != &that) {
+    Drop();  // 显示放自己当前有的 page
+    
+    // 接管 that 的属性和状态
+    bpm_ = that.bpm_;
+    page_ = that.page_;
+    is_dirty_ = that.is_dirty_;
+
+    // 把 that 置空
+    that.bpm_ = nullptr;
+    that.page_ = nullptr;
+    that.is_dirty_ = false;
+  }
+
+  return *this;
 }
 
 BasicPageGuard::~BasicPageGuard() { Drop(); }
@@ -39,7 +53,10 @@ void BasicPageGuard::Drop() {
   // TODO(student): Unpin the page via BPM and reset state
   // - Call bpm_->UnpinPage(page_id, is_dirty_) if page_ is not null
   // - Set bpm_ and page_ to nullptr
-  throw NotImplementedException("BasicPageGuard::Drop");
+  bpm_ -> UnpinPage(page_->GetPageId(), is_dirty_);
+  bpm_ = nullptr;
+  page_ = nullptr;
+  is_dirty_ = false;
 }
 
 // --- ReadPageGuard ---
@@ -57,7 +74,17 @@ ReadPageGuard::ReadPageGuard(ReadPageGuard &&that) noexcept
 
 auto ReadPageGuard::operator=(ReadPageGuard &&that) -> ReadPageGuard & {
   // TODO(student): Implement move assignment (drop current, take that)
-  throw NotImplementedException("ReadPageGuard::operator=(ReadPageGuard&&)");
+    if (this != &that) {
+    Drop();
+
+    bpm_ = that.bpm_;
+    page_ = that.page_;
+
+    that.bpm_ = nullptr;
+    that.page_ = nullptr;
+  }
+
+  return *this;
 }
 
 ReadPageGuard::~ReadPageGuard() { Drop(); }
@@ -71,7 +98,11 @@ auto ReadPageGuard::GetData() const -> const char * { return page_->GetData(); }
 void ReadPageGuard::Drop() {
   if (page_ == nullptr) { return; }
   // TODO(student): Release read latch, unpin page, reset state
-  throw NotImplementedException("ReadPageGuard::Drop");
+
+  page_ -> RUnlatch();
+  bpm_ -> UnpinPage(page_ -> GetPageId(), false);
+  bpm_ = nullptr;
+  page_ = nullptr;
 }
 
 // --- WritePageGuard ---
@@ -89,7 +120,17 @@ WritePageGuard::WritePageGuard(WritePageGuard &&that) noexcept
 
 auto WritePageGuard::operator=(WritePageGuard &&that) -> WritePageGuard & {
   // TODO(student): Implement move assignment (drop current, take that)
-  throw NotImplementedException("WritePageGuard::operator=(WritePageGuard&&)");
+  if (this != &that) {
+    Drop();
+
+    bpm_ = that.bpm_;
+    page_ = that.page_;
+
+    that.bpm_ = nullptr;
+    that.page_ = nullptr;
+  }
+
+  return *this;
 }
 
 WritePageGuard::~WritePageGuard() { Drop(); }
@@ -102,9 +143,15 @@ auto WritePageGuard::GetData() const -> const char * { return page_->GetData(); 
 auto WritePageGuard::GetDataMut() -> char * { return page_->GetData(); }
 
 void WritePageGuard::Drop() {
-  if (page_ == nullptr) { return; }
   // TODO(student): Release write latch, unpin page (dirty=true), reset state
-  throw NotImplementedException("WritePageGuard::Drop");
+  if (page_ == nullptr) {
+    return;
+  }
+
+  page_ -> WUnlatch();
+  bpm_ -> UnpinPage(page_ -> GetPageId(), false);
+  bpm_ = nullptr;
+  page_ = nullptr;
 }
 
 }  // namespace onebase

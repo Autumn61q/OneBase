@@ -30,6 +30,10 @@ class LRUKReplacer {
     bool is_evictable_{false};
   };
   std::unordered_map<frame_id_t, FrameEntry> entries_;
+
+  // 访问方式：
+  // auto &entry = entries_[frame_id];  // 获取某个帧的 FrameEntry
+  // auto &history = entry.history_;   // 访问该帧的访问历史
 };
 
 }  // namespace onebase

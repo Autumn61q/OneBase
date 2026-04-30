@@ -9,6 +9,7 @@
 
 namespace onebase {
 
+  // 把磁盘上的数据页（Page）缓存到内存的“坑位”（Frame）里，并让数据库通过内存直接访问它们
 class BufferPoolManager {
  public:
   BufferPoolManager(size_t pool_size, DiskManager *disk_manager, size_t replacer_k = LRUK_REPLACER_K);
