@@ -8,16 +8,42 @@ DeleteExecutor::DeleteExecutor(ExecutorContext *exec_ctx, const DeletePlanNode *
     : AbstractExecutor(exec_ctx), plan_(plan), child_executor_(std::move(child_executor)) {}
 
 void DeleteExecutor::Init() {
-  // TODO(student): Initialize child executor
-  throw NotImplementedException("DeleteExecutor::Init");
+  child_executor_->Init();
 }
 
 auto DeleteExecutor::Next(Tuple *tuple, RID *rid) -> bool {
-  // TODO(student): Delete tuples identified by child executor
-  // - Get tuples from child, delete from table_heap
-  // - Update any indexes
-  // - Return count of deleted rows
-  throw NotImplementedException("DeleteExecutor::Next");
+  if (has_deleted_) {
+    return false;
+  }
+
+  auto table_oid = plan_->GetTableOid();
+  auto table_info = GetExecutorContext()->GetCatalog()->GetTable(table_oid);
+  auto indexes = GetExecutorContext()->GetCatalog()->GetTableIndexes(table_info->name_);
+
+  int count = 0;
+  Tuple child_tuple;
+  RID child_rid;
+
+  while (child_executor_->Next(&child_tuple, &child_rid)) {
+    // Remove from indexes first
+    for (auto index_info : indexes) {
+      auto key_attr = index_info->key_attrs_[0];
+      auto key_value = child_tuple.GetValue(&table_info->schema_, key_attr);
+      int32_t key = key_value.GetAsInteger();
+      index_info->RemoveEntry(key, child_rid);
+    }
+
+    // Delete from table
+    table_info->table_->DeleteTuple(child_rid);
+    count++;
+  }
+
+  // Return count as a single integer tuple
+  std::vector<Value> values;
+  values.emplace_back(TypeId::INTEGER, count);
+  *tuple = Tuple(values);
+  has_deleted_ = true;
+  return true;
 }
 
 }  // namespace onebase

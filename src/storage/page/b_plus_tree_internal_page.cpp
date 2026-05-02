@@ -115,7 +115,7 @@ auto B_PLUS_TREE_INTERNAL_PAGE_TYPE::RemoveAndReturnOnlyChild() -> ValueType {
 template <typename KeyType, typename ValueType, typename KeyComparator>
 void B_PLUS_TREE_INTERNAL_PAGE_TYPE::MoveAllTo(BPlusTreeInternalPage *recipient, const KeyType &middle_key) {
   // TODO(student): Move all entries to recipient during merge。我们这里将 recipient 设置为 left child
-  int recipient_size = recipient->Getsize();
+  int recipient_size = recipient->GetSize();
 
   recipient->array_[recipient_size].first = middle_key;
   recipient->array_[recipient_size].second = array_[0].second;

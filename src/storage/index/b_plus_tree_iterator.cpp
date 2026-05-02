@@ -49,6 +49,21 @@ auto BPLUSTREE_ITERATOR_TYPE::operator++() -> BPlusTreeIterator & {
     } else {
       page_id_ = next_page_id;
       index_ = 0;
+
+      // Skip empty leaf nodes
+      while (page_id_ != INVALID_PAGE_ID) {
+        Page *next_page = bpm_->FetchPage(page_id_);
+        auto *next_leaf = reinterpret_cast<BPlusTreeLeafPage<KeyType, ValueType, KeyComparator>*>(next_page->GetData());
+
+        if (next_leaf->GetSize() > 0) {
+          bpm_->UnpinPage(page_id_, false);
+          break;
+        }
+
+        page_id_t skip_to = next_leaf->GetNextPageId();
+        bpm_->UnpinPage(page_id_, false);
+        page_id_ = skip_to;
+      }
     }
   } else {
     bpm_->UnpinPage(page_id_, false);
